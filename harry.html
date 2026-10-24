@@ -1,17 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="kn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Harry ಕನ್ನಡ AI</title>
+  <title>Harry Kannada AI</title>
   <style>
     body {
-      background: #101827;
-      color: white;
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 30px 15px;
+      padding: 20px;
+      background-color: #121212;
+      color: white;
     }
     button {
       background: #2878ff;
@@ -21,83 +19,99 @@
       padding: 15px 22px;
       font-size: 18px;
       margin: 8px;
+      cursor: pointer;
     }
     #answer { color: #8ee8ff; }
   </style>
 </head>
 <body>
   <h1>Harry</h1>
-  <p>ನಿನ್ನ ಕನ್ನಡ AI ಸಹಾಯಕ</p>
+  <p>ನಿಮ್ಮ ಕನ್ನಡ AI ಸಹಾಯಕ</p>
 
-  <button onclick="startListening()">Harry ಜೊತೆ ಮಾತನಾಡು</button>
-  <button onclick="stopListening()">ನಿಲ್ಲಿಸು</button>
+  <button onclick="startListening()">Harry ಜೊತೆ ಮಾತನಾಡಿ</button>
+  <button onclick="stopListening()">ನಿಲ್ಲಿಸಿ</button>
 
-  <p id="status">ಪ್ರಾರಂಭಿಸಲು ಬಟನ್ ಒತ್ತು.</p>
+  <p id="status">ಮಾತನಾಡಲು ಬಟನ್ ಒತ್ತಿ.</p>
   <p id="answer"></p>
 
-<script>
-let recognition;
+  <script>
+    let recognition;
 
-function speak(text) {
-  const voice = new SpeechSynthesisUtterance(text);
-  voice.lang = "kn-IN";
-  speechSynthesis.speak(voice);
-}
-
-function startListening() {
-  const SpeechAPI =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  if (!SpeechAPI) {
-    document.getElementById("status").textContent =
-      "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ.";
-    return;
-  }
-
-  recognition = new SpeechAPI();
-  recognition.lang = "kn-IN";
-  recognition.continuous = false;
-
-  recognition.onstart = () => {
-    document.getElementById("status").textContent =
-      "Harry ಕೇಳುತ್ತಿದೆ...";
-  };
-
-  recognition.onresult = (event) => {
-    const text = event.results[0][0].transcript;
-    document.getElementById("answer").textContent =
-      "ನೀನು ಹೇಳಿದ್ದು: " + text;
-
-    let reply = "ನಮಸ್ಕಾರ! ನಾನು Harry. ನಿನ್ನ ಮಾತು ಕೇಳಿದೆ.";
-
-    if (text.includes("ನಮಸ್ಕಾರ")) {
-      reply = "ನಮಸ್ಕಾರ! ಹೇಗಿದ್ದೀಯ?";
-    } else if (text.includes("ಹೆಸರು")) {
-      reply = "ನನ್ನ ಹೆಸರು Harry.";
-    } else if (text.includes("ಧನ್ಯವಾದ")) {
-      reply = "ಸ್ವಾಗತ! ನಿನಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷ.";
+    // Harry ಧ್ವನಿಯಲ್ಲಿ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
+    function speak(text) {
+      const voice = new SpeechSynthesisUtterance(text);
+      voice.lang = 'kn-IN';
+      window.speechSynthesis.speak(voice);
     }
 
-    document.getElementById("status").textContent =
-      "Harry ಉತ್ತರಿಸುತ್ತಿದೆ...";
-    speak(reply);
-  };
+    // Vercel ಬ್ಯಾಕೆಂಡ್‌ಗೆ ಮೆಸೇಜ್ ಕಳುಹಿಸಿ Gemini ಜೊತೆ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
+    async function askHarry(message) {
+      try {
+        document.getElementById('status').textContent = "Harry ಯೋಚಿಸುತ್ತಿದ್ದಾನೆ...";
+        
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: message })
+        });
 
-    recognition.onerror = (event) => {
-  document.getElementById("status").textContent =
-    "ದೋಷ: " + event.error;
-};
+        const data = await response.json();
+        
+        if (data.reply) {
+          document.getElementById('status').textContent = "Harry ಮಾತನಾಡುತ್ತಿದ್ದಾನೆ...";
+          document.getElementById('answer').textContent = "Harry: " + data.reply;
+          speak(data.reply);
+        } else {
+          document.getElementById('status').textContent = "ದೋಷ ಉಂಟಾಗಿದೆ.";
+          console.error(data.error);
+        }
+      } catch (err) {
+        document.getElementById('status').textContent = "ನೆಟ್‌ವರ್ಕ್ ದೋಷ.";
+        console.error('Network error:', err);
+      }
+    }
 
-  recognition.start();
-}
+    // ಧ್ವನಿ ಗ್ರಹಿಸುವ ಫಂಕ್ಷನ್
+    function startListening() {
+      const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-function stopListening() {
-  if (recognition) recognition.stop();
-  speechSynthesis.cancel();
-  document.getElementById("status").textContent =
-    "Harry ನಿಲ್ಲಿಸಲಾಗಿದೆ.";
-}
-</script>
+      if (!SpeechAPI) {
+        document.getElementById("status").textContent = "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ.";
+        return;
+      }
+
+      recognition = new SpeechAPI();
+      recognition.lang = "kn-IN";
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        document.getElementById("status").textContent = "Harry ಕೇಳುತ್ತಿದ್ದಾನೆ...";
+      };
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById("answer").textContent = "ನೀವು ಹೇಳಿದ್ದು: " + text;
+        
+        // Vercel ಬ್ಯಾಕೆಂಡ್‌ಗೆ ಮೆಸೇಜ್ ಕಳುಹಿಸುವುದು
+        askHarry(text);
+      };
+
+      recognition.onerror = (event) => {
+        document.getElementById("status").textContent = "ದೋಷ: " + event.error;
+      };
+
+      recognition.start();
+    }
+
+    function stopListening() {
+      if (recognition) {
+        recognition.stop();
+        document.getElementById("status").textContent = "Harry ನಿಲ್ಲಿಸಲಾಗಿದೆ.";
+      }
+    }
+  </script>
 </body>
 </html>
+
