@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <title>Harry Kannada AI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #121212;
+      color: white;
+    }
+    button {
+      background: #2878ff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 15px 22px;
+      font-size: 18px;
+      margin: 8px;
+      cursor: pointer;
+    }
+    #answer { color: #8ee8ff; }
+  </style>
+</head>
+<body>
+  <h1>Harry</h1>
+  <p>ನಿಮ್ಮ ಕನ್ನಡ AI ಸಹಾಯಕ</p>
+
+  <button onclick="startListening()">Harry ಜೊತೆ ಮಾತನಾಡಿ</button>
+  <button onclick="stopListening()">ನಿಲ್ಲಿಸಿ</button>
+
+  <p id="status">ಮಾತನಾಡಲು ಬಟನ್ ಒತ್ತಿ.</p>
+  <p id="answer"></p>
+
+  <script>
+    let recognition;
+
+    // Harry ಧ್ವನಿಯಲ್ಲಿ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
+    function speak(text) {
+      const voice = new SpeechSynthesisUtterance(text);
+      voice.lang = 'kn-IN';
+      window.speechSynthesis.speak(voice);
+    }
+
+    // Vercel ಬ್ಯಾಕೆಂಡ್‌ಗೆ ಮೆಸೇಜ್ ಕಳುಹಿಸಿ Gemini ಜೊತೆ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
+    async function askHarry(message) {
+      try {
+        document.getElementById('status').textContent = "Harry ಯೋಚಿಸುತ್ತಿದ್ದಾನೆ...";
+        
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: message })
+        });
+
+        const data = await response.json();
+        
+        if (data.reply) {
+          document.getElementById('status').textContent = "Harry ಮಾತನಾಡುತ್ತಿದ್ದಾನೆ...";
+          document.getElementById('answer').textContent = "Harry: " + data.reply;
+          speak(data.reply);
+        } else {
+    
