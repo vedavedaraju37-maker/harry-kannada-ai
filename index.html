@@ -21,7 +21,8 @@
       margin: 8px;
       cursor: pointer;
     }
-    #answer { color: #8ee8ff; }
+    #answer { color: #8ee8ff; margin-top: 15px; }
+    #status { color: #ffeb3b; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -37,23 +38,19 @@
   <script>
     let recognition;
 
-    // Harry ಧ್ವನಿಯಲ್ಲಿ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
     function speak(text) {
       const voice = new SpeechSynthesisUtterance(text);
       voice.lang = 'kn-IN';
       window.speechSynthesis.speak(voice);
     }
 
-    // Vercel ಬ್ಯಾಕೆಂಡ್‌ಗೆ ಮೆಸೇಜ್ ಕಳುಹಿಸಿ Gemini ಜೊತೆ ಮಾತನಾಡುವ ಫಂಕ್ಷನ್
     async function askHarry(message) {
       try {
         document.getElementById('status').textContent = "Harry ಯೋಚಿಸುತ್ತಿದ್ದಾನೆ...";
         
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: message })
         });
 
@@ -64,4 +61,60 @@
           document.getElementById('answer').textContent = "Harry: " + data.reply;
           speak(data.reply);
         } else {
+          document.getElementById('status').textContent = "ದೋಷ: " + (data.error || "ಅಜ್ಞಾತ ದೋಷ");
+        }
+      } catch (err) {
+        document.getElementById('status').textContent = "ನೆಟ್‌ವರ್ಕ್ ದೋಷ ಉಂಟಾಗಿದೆ.";
+        console.error('Network error:', err);
+      }
+    }
+
+    function startListening() {
+      const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechAPI) {
+        document.getElementById("status").textContent = "ಕ್ಷಮಿಸಿ, ಈ ಬ್ರೌಸರ್ ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ.";
+        return;
+      }
+
+      try {
+        recognition = new SpeechAPI();
+        recognition.lang = "kn-IN";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+          document.getElementById("status").textContent = "Harry ಕೇಳುತ್ತಿದ್ದಾನೆ... ಮಾತನಾಡಿ!";
+        };
+
+        recognition.onresult = (event) => {
+          const text = event.results[0][0].transcript;
+          document.getElementById("answer").textContent = "ನೀವು ಹೇಳಿದ್ದು: " + text;
+          askHarry(text);
+        };
+
+        recognition.onerror = (event) => {
+          document.getElementById("status").textContent = "ಮೈಕ್ ದೋಷ: " + event.error;
+        };
+
+        recognition.onend = () => {
+          console.log("Speech recognition ended.");
+        };
+
+        recognition.start();
+      } catch (e) {
+        document.getElementById("status").textContent = "ಸ್ಟಾರ್ಟ್ ಮಾಡಲು ಆಗುತ್ತಿಲ್ಲ: " + e.message;
+      }
+    }
+
+    function stopListening() {
+      if (recognition) {
+        recognition.stop();
+        document.getElementById("status").textContent = "Harry ನಿಲ್ಲಿಸಲಾಗಿದೆ.";
+      }
+    }
+  </script>
+</body>
+</html>
+
     
