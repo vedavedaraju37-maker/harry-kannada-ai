@@ -20,7 +20,13 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅರ್ಥವಾಗಲಿಲ್ಲ.";
+    
+    let reply = "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅರ್ಥವಾಗಲಿಲ್ಲ.";
+    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+      reply = data.candidates[0].content.parts[0].text;
+    } else if (data.error) {
+      reply = "API ದೋಷ: " + data.error.message;
+    }
 
     return res.status(200).json({ reply });
   } catch (err) {
@@ -28,3 +34,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch from Gemini API' });
   }
 }
+
